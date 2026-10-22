@@ -16,14 +16,17 @@
 
 package org.springframework.security.authentication.ott;
 
+import java.io.IOException;
 import java.util.Set;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.json.JsonMapper;
 
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.jackson.SecurityJacksonModules;
+import org.springframework.security.jackson2.SecurityJackson2Modules;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -50,6 +53,19 @@ class OneTimeTokenAuthenticationTests {
 		JsonMapper mapper = JsonMapper.builder()
 			.addModules(SecurityJacksonModules.getModules(getClass().getClassLoader()))
 			.build();
+		OneTimeTokenAuthentication oneTimeTokenAuthentication = new OneTimeTokenAuthentication("principal",
+				AuthorityUtils.createAuthorityList("ROLE_USER"));
+		byte[] serialized = mapper.writeValueAsBytes(oneTimeTokenAuthentication);
+		OneTimeTokenAuthentication deserialized = mapper.readValue(serialized, OneTimeTokenAuthentication.class);
+		assertThat(deserialized.getPrincipal()).isEqualTo(oneTimeTokenAuthentication.getPrincipal());
+		assertThat(deserialized.getAuthorities()).extracting(GrantedAuthority::getAuthority).contains("ROLE_USER");
+	}
+
+	@Test
+	@SuppressWarnings("removal")
+	void shouldBeAbleToDeserializeFromJsonWithJackson2DefaultTypingActivated() throws IOException {
+		ObjectMapper mapper = new ObjectMapper();
+		mapper.registerModules(SecurityJackson2Modules.getModules(getClass().getClassLoader()));
 		OneTimeTokenAuthentication oneTimeTokenAuthentication = new OneTimeTokenAuthentication("principal",
 				AuthorityUtils.createAuthorityList("ROLE_USER"));
 		byte[] serialized = mapper.writeValueAsBytes(oneTimeTokenAuthentication);
